@@ -5,7 +5,7 @@ import { Bar, CostView } from './bits'
 import { collapse, Detail, Tile } from './Tile'
 import { VillageMap } from './VillageMap'
 
-const MAP_KINDS = ['building', 'trap', 'wall']
+const MAP_KINDS = ['building', 'trap']
 const readView = () => { try { return localStorage.getItem('clash-tracker:view') === 'list' ? 'list' : 'map' } catch { return 'map' } }
 
 /** A page of item tiles grouped by category, with search and a hide-maxed switch. */

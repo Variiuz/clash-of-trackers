@@ -223,8 +223,6 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
 .spot { position: absolute; width: var(--cw); height: var(--cw); padding: 0; border: 0; background: none; cursor: pointer;
   left: calc(50cqw + var(--dx) * var(--cw) / 2 - var(--cw) / 2); top: calc(var(--dy) * var(--cw) * .45); transition: transform .12s; }
 .spot img, .spot .noimg, .spot .imgwait { position: absolute; inset: 6% 15% 24%; width: 70%; height: 70%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 calc(var(--cw) * .05) 0 #0005); }
-.spot.wall { pointer-events: none; } .spot.wall img { pointer-events: auto; inset: 36% 33% 30%; width: 34%; height: 34%; filter: drop-shadow(0 calc(var(--cw) * .03) 0 #0006); }
-.spot.wall:hover, .spot.wall:focus-visible { transform: none; } .spot.wall:hover img { filter: brightness(1.25); }
 .spot:hover, .spot:focus-visible { transform: translateY(-8%) scale(1.12); z-index: 999 !important; }
 .spot.missing img { filter: grayscale(1) opacity(.55); }
 .spot-lvl small { font-size: .78em; margin-left: .3em; opacity: .9; }
@@ -242,13 +240,13 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
 .station { display: grid; justify-items: center; gap: 2px; min-width: 0; }
 .bubble { position: relative; background: var(--parch); color: var(--ink); border: 2px solid var(--frame); border-radius: 12px; padding: 6px 9px; min-height: 40px; max-width: 100%; display: grid; gap: 4px; box-shadow: 0 3px 0 #0004; margin-bottom: 9px; }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -9px; width: 14px; height: 14px; background: var(--parch); border: solid var(--frame); border-width: 0 2px 2px 0; transform: translateX(-50%) rotate(45deg); margin-bottom: 1px; }
-.job { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 7px; align-items: center; text-align: left; font-size: 12.5px; line-height: 1.25; }
-.job img, .job .noimg, .job .imgwait { width: 30px; height: 30px; object-fit: contain; }
-.job b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .job small { color: var(--ink-soft); white-space: nowrap; } .more { color: var(--ink-soft); text-align: center; }
+.job { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; line-height: 1.25; }
+.job img, .job .noimg, .job .imgwait { width: 38px; height: 38px; object-fit: contain; }
+.job span { display: grid; } .job b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .job small { color: var(--ink-soft); font-size: 12px; white-space: nowrap; } .job .timer, .job .ready { font-size: 14px; } .more { color: var(--ink-soft); text-align: center; }
 .zzz { font: 400 15px var(--display); color: var(--ink-soft); letter-spacing: .1em; padding: 2px 8px; } .zzz b { font-weight: 400; font-size: 12px; }
-.station-art { width: 84px; height: 84px; object-fit: contain; object-position: bottom; filter: drop-shadow(0 6px 3px #0007); }
+.station-art { width: 54px; height: 54px; object-fit: contain; object-position: bottom; filter: drop-shadow(0 6px 3px #0007); }
 .station.idle .station-art { filter: drop-shadow(0 6px 3px #0007) saturate(.7); }
-.station-label { font: 400 12.5px var(--display); text-shadow: var(--ol); text-align: center; }
+.station-label { font-size: 11.5px; font-weight: 700; opacity: .85; text-shadow: 0 1px 0 var(--black); text-align: center; }
 
 /* ---- road to max ---- */
 .road { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 14px; align-items: center; padding: 62px 0 58px; }

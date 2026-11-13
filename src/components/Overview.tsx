@@ -33,7 +33,7 @@ function Station({ img, label, jobs, now }: { img: string | null; label: string;
         {jobs.length === 0 ? <span className="zzz">z<b>z</b>Z</span> : jobs.slice(0, 2).map((j) => (
           <div key={j.key} className="job">
             <Img src={j.img} alt={j.name} />
-            <span><b>{j.name}</b><small>to {j.lvl + 1} · <Countdown finishAt={j.finishAt!} now={now} /></small></span>
+            <span><b>{j.name}</b><small>to level {j.lvl + 1}</small><Countdown finishAt={j.finishAt!} now={now} /></span>
           </div>
         ))}
         {jobs.length > 2 && <small className="more">+{jobs.length - 2} more</small>}
