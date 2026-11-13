@@ -1,28 +1,26 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { diffExports, QUEUE_LABEL, sectionStats, type Item, type Queue, type Village } from '../lib/model'
 import type { Account } from '../lib/store'
 import { ago, dateStr, dur, pct } from '../lib/format'
 import { PACKED, type VillageId } from '../lib/game'
 import { CostView, Countdown, Img, Win } from './bits'
+import { Detail } from './Tile'
 
 const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0)
 
-/** A building standing on the grass with a speech bubble saying what it is busy with. */
-function Station({ img, label, jobs, now }: { img: string | null; label: string; jobs: Item[]; now: number }) {
+/** One running upgrade: the thing itself, where it is going, and how long is left. */
+function Site({ it, who, now, onOpen }: { it: Item; who: string; now: number; onOpen: (it: Item) => void }) {
+  const left = it.finishAt! - now / 1000
+  const done = it.activeTime ? Math.max(0, Math.min(1, 1 - Math.max(0, left) / it.activeTime)) : 0
   return (
-    <div className={`station ${jobs.length ? 'busy' : 'idle'}`}>
-      <div className="bubble">
-        {jobs.length === 0 ? <span className="zzz">z<b>z</b>Z</span> : jobs.slice(0, 2).map((j) => (
-          <div key={j.key} className="job">
-            <Img src={j.img} alt={j.name} />
-            <span><b>{j.name}</b><small>to level {j.lvl + 1}</small><Countdown finishAt={j.finishAt!} now={now} /></span>
-          </div>
-        ))}
-        {jobs.length > 2 && <small className="more">+{jobs.length - 2} more</small>}
-      </div>
-      <Img src={img} alt={label} className="station-art" />
-      <span className="station-label">{label}</span>
-    </div>
+    <button className={`site ${left <= 0 ? 'done' : ''}`} onClick={() => onOpen(it)}>
+      <span className="site-lvl">{it.lvl} → {it.lvl + 1}</span>
+      <span className="site-who">{who}</span>
+      <Img src={it.img} alt="" />
+      <b>{it.name}</b>
+      <em><Countdown finishAt={it.finishAt!} now={now} /></em>
+      <span className="site-bar"><i style={{ width: `${done * 100}%` }} /></span>
+    </button>
   )
 }
 
@@ -34,7 +32,7 @@ function Banners({ overall, secs, go }: { overall: number; secs: { id: string; l
   return (
     <section className="banners" aria-label="Village progress">
       <div className="beam"><span className="plaque">{pct(overall)}</span></div>
-      <div className="banner-row">
+      <div className="banner-row" style={{ ['--mcols' as string]: secs.length <= 3 ? secs.length : secs.length === 4 ? 2 : 3 }}>
         {secs.map((s) => (
           <button key={s.id} className={`banner ${s.pct >= 0.9995 ? 'maxed' : ''}`} onClick={() => go(s.id)}>
             <i style={{ height: `${s.pct * 100}%` }} />
@@ -50,6 +48,7 @@ function Banners({ overall, secs, go }: { overall: number; secs: { id: string; l
 
 export function Overview({ v, vid, account, now, go }: { v: Village; vid: VillageId; account: Account; now: number; go: (tab: string) => void }) {
   const home = vid === 'home'
+  const [open, setOpen] = useState<Item | null>(null)
   const prog = useMemo(() => sectionStats(v, vid), [v, vid])
   const snaps = account.snapshots
   const prev = snaps.length > 1 ? snaps[snaps.length - 2] : null
@@ -69,23 +68,16 @@ export function Overview({ v, vid, account, now, go }: { v: Village; vid: Villag
   })
   const label = (q: Queue) => (!home && q === 'lab' ? 'Star Laboratory' : !home && q === 'heroes' ? 'Heroes' : QUEUE_LABEL[q])
 
-  // who is doing what: one builder per running builder job, then the other workplaces
-  const named = (n: string) => v.items.filter((i) => i.village === vid && i.kind === 'building' && i.name === n)
-  const huts = home ? [...named("Builder's Hut"), ...named("B.O.B's Hut")] : [...named('Builder Hall'), ...named("O.T.T.O's Outpost")]
-  const hutName = (h: Item, k: number) => (h.name === "B.O.B's Hut" ? 'B.O.B' : h.name === "O.T.T.O's Outpost" ? 'O.T.T.O' : home ? `Builder ${k + 1}` : 'Master Builder')
-  const hutJobs: Item[][] = huts.map(() => [])
-  const bob = huts.findIndex((h) => h.name === "B.O.B's Hut")
-  let free = 0
-  for (const job of queues[0].active) {
-    if (job.badges.includes('Extra builder') && bob >= 0 && !hutJobs[bob].length) { hutJobs[bob].push(job); continue }
-    while (free < huts.length && (hutJobs[free].length || free === bob)) free++
-    const k = free < huts.length ? free : bob >= 0 && !hutJobs[bob].length ? bob : huts.length - 1
-    if (k >= 0) hutJobs[k].push(job)
-  }
-  const place = (names: string[], text: string, q: number) => { const b = names.flatMap(named)[0]; return { img: b?.img ?? null, label: text, jobs: queues[q].active, show: !!b } }
-  const stations = (home
-    ? [place(['Laboratory'], 'Laboratory', 1), place(['Hero Hall'], 'Hero Hall', 2), place(['Pet House'], 'Pet House', 3)]
-    : [place(['Star Laboratory'], 'Star Laboratory', 1), place(['Battle Machine', 'Battle Copter'], 'Heroes', 2)]).filter((x) => x.show)
+  // running upgrades, soonest first, then whoever has nothing to do
+  const who = (it: Item) => (it.queue === 'builder' ? (it.badges.includes('Extra builder') ? 'B.O.B' : 'Builder') : label(it.queue))
+  const sites = queues.flatMap((q) => q.active).sort((a, b) => a.finishAt! - b.finishAt!)
+  const freeBuilders = Math.max(0, (home ? v.builders : v.bbBuilders) - queues[0].active.length)
+  const has = (n: string) => v.items.some((i) => i.village === vid && i.kind === 'building' && i.name === n && !i.missing)
+  const idle = [
+    ...Array.from({ length: freeBuilders }, () => 'Builder'),
+    ...(!queues[1].active.length && queues[1].next.length && has(home ? 'Laboratory' : 'Star Laboratory') ? [label('lab')] : []),
+    ...(home && queues[3] && !queues[3].active.length && queues[3].next.length && has('Pet House') ? ['Pet House'] : []),
+  ]
 
   return (
     <div className="overview">
@@ -94,9 +86,16 @@ export function Overview({ v, vid, account, now, go }: { v: Village; vid: Villag
         <CostView cost={prog.all.remCost} exact />
       </div>
 
-      <section className="camp" aria-label="What everyone is working on">
-        {huts.map((h, k) => <Station key={h.key} img={h.img} label={hutName(h, k)} jobs={hutJobs[k]} now={now} />)}
-        {stations.map((s) => <Station key={s.label} img={s.img} label={s.label} jobs={s.jobs} now={now} />)}
+      <section className="sites" aria-label="Upgrades in progress">
+        {sites.map((it) => <Site key={it.key} it={it} who={who(it)} now={now} onOpen={setOpen} />)}
+        {idle.map((w, k) => (
+          <button key={w + k} className="site free" onClick={() => go('planner')}>
+            <span className="site-who">{w}</span>
+            <span className="zzz">z<b>z</b>Z</span>
+            <b>{w === 'Builder' ? 'Free builder' : `${w} idle`}</b>
+            <em>Planner</em>
+          </button>
+        ))}
       </section>
 
       <Banners overall={prog.overall} secs={prog.secs.map((s) => ({ id: s.id, label: s.label, pct: s.stats.pct }))} go={(id) => go(tabFor[id] ?? 'village')} />
@@ -145,6 +144,7 @@ export function Overview({ v, vid, account, now, go }: { v: Village; vid: Villag
           </Win>
         </div>
       </div>
+      {open && <Detail it={open} now={now} onClose={() => setOpen(null)} />}
     </div>
   )
 }
