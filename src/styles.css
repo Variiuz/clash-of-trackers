@@ -223,7 +223,8 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
 .spot { position: absolute; width: var(--cw); height: var(--cw); padding: 0; border: 0; background: none; cursor: pointer;
   left: calc(50cqw + var(--dx) * var(--cw) / 2 - var(--cw) / 2); top: calc(var(--dy) * var(--cw) * .45); transition: transform .12s; }
 .spot img, .spot .noimg, .spot .imgwait { position: absolute; inset: 6% 15% 24%; width: 70%; height: 70%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 calc(var(--cw) * .05) 0 #0005); }
-.spot.wall img { inset: 34% 30% 26%; width: 40%; height: 40%; }
+.spot.wall { pointer-events: none; } .spot.wall img { pointer-events: auto; inset: 36% 33% 30%; width: 34%; height: 34%; filter: drop-shadow(0 calc(var(--cw) * .03) 0 #0006); }
+.spot.wall:hover, .spot.wall:focus-visible { transform: none; } .spot.wall:hover img { filter: brightness(1.25); }
 .spot:hover, .spot:focus-visible { transform: translateY(-8%) scale(1.12); z-index: 999 !important; }
 .spot.missing img { filter: grayscale(1) opacity(.55); }
 .spot-lvl small { font-size: .78em; margin-left: .3em; opacity: .9; }
@@ -231,8 +232,7 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
   color: var(--white); text-shadow: var(--ol); background: #1a1a1acc; border: 1px solid var(--black); }
 .spot.maxed .spot-lvl { background: linear-gradient(#ffe680, var(--gold-deep)); }
 .spot.active .spot-lvl { background: linear-gradient(#8ad1ff, var(--blue-deep)); }
-.spot.active img { animation: bob 1.4s ease-in-out infinite; }
-@keyframes bob { 50% { transform: translateY(-5%); } }
+.spot.active img { filter: drop-shadow(0 0 calc(var(--cw) * .07) var(--blue)) drop-shadow(0 calc(var(--cw) * .05) 0 #0005); }
 .map-key { display: flex; gap: 14px; justify-content: center; font-size: 12.5px; font-weight: 700; text-shadow: 0 1px 0 var(--black); position: sticky; left: 0; }
 .map-key .k::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 5px; vertical-align: -1px; background: #1a1a1a; border: 1px solid var(--black); }
 .map-key .k.maxed::before { background: var(--gold); } .map-key .k.active::before { background: var(--blue); }
@@ -247,7 +247,7 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
 .job b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .job small { color: var(--ink-soft); white-space: nowrap; } .more { color: var(--ink-soft); text-align: center; }
 .zzz { font: 400 15px var(--display); color: var(--ink-soft); letter-spacing: .1em; padding: 2px 8px; } .zzz b { font-weight: 400; font-size: 12px; }
 .station-art { width: 84px; height: 84px; object-fit: contain; object-position: bottom; filter: drop-shadow(0 6px 3px #0007); }
-.station.busy .station-art { animation: bob 1.6s ease-in-out infinite; } .station.idle .station-art { filter: drop-shadow(0 6px 3px #0007) saturate(.7); }
+.station.idle .station-art { filter: drop-shadow(0 6px 3px #0007) saturate(.7); }
 .station-label { font: 400 12.5px var(--display); text-shadow: var(--ol); text-align: center; }
 
 /* ---- road to max ---- */
@@ -291,4 +291,3 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
   .altar { grid-template-columns: 1fr; }
   .camp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (prefers-reduced-motion: reduce) { .spot.active img, .station.busy .station-art { animation: none; } }

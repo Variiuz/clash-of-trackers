@@ -19,11 +19,14 @@ export function VillageMap({ items, now, onOpen }: { items: Item[]; now: number;
     const cells = inner.map(({ it, n }, k) => ({ it, n, i: slots[k][0], j: slots[k][1], wall: false }))
     const walls = items.filter((i) => i.kind === 'wall' && i.count > 0).sort((a, b) => b.lvl - a.lvl)
     if (walls.length) {
+      // a continuous wall around the base: several overlapping pieces per tile edge, levels in proportion to their counts
+      const PER = 3, e = G - 1
+      const corners: [number, number][] = [[0, 0], [e, 0], [e, e], [0, e], [0, 0]]
       const ring: [number, number][] = []
-      for (let k = 0; k < G - 1; k++) ring.push([k, 0])
-      for (let k = 0; k < G - 1; k++) ring.push([G - 1, k])
-      for (let k = G - 1; k > 0; k--) ring.push([k, G - 1])
-      for (let k = G - 1; k > 0; k--) ring.push([0, k])
+      for (let c = 0; c < 4; c++) for (let k = 0; k < e * PER; k++) {
+        const t = k / (e * PER)
+        ring.push([corners[c][0] + (corners[c + 1][0] - corners[c][0]) * t, corners[c][1] + (corners[c + 1][1] - corners[c][1]) * t])
+      }
       const total = walls.reduce((a, w) => a + w.count, 0)
       let acc = 0, w = 0
       ring.forEach(([i, j], k) => {
@@ -42,8 +45,8 @@ export function VillageMap({ items, now, onOpen }: { items: Item[]; now: number;
           const maxed = !it.steps.length
           const left = it.finishAt ? it.finishAt - now / 1000 : 0
           return (
-            <button key={k} className={`spot ${wall ? 'wall' : ''} ${maxed ? 'maxed' : ''} ${it.finishAt ? 'active' : ''} ${it.missing ? 'missing' : ''}`} style={{ ['--dx' as string]: i - j, ['--dy' as string]: i + j, zIndex: i + j }}
-              onClick={() => onOpen(it, n)} title={`${it.name} ${it.missing ? '(not built)' : `level ${it.lvl}`}${wall ? ` ×${it.count}` : n > 1 ? ` ×${n}` : ''}`}>
+            <button key={k} className={`spot ${wall ? 'wall' : ''} ${maxed ? 'maxed' : ''} ${it.finishAt ? 'active' : ''} ${it.missing ? 'missing' : ''}`} style={{ ['--dx' as string]: i - j, ['--dy' as string]: i + j, zIndex: Math.round((i + j) * 10) + (wall ? 0 : 5) }}
+              tabIndex={wall && cells[k - 1]?.it === it ? -1 : undefined} onClick={() => onOpen(it, n)} title={`${it.name} ${it.missing ? '(not built)' : `level ${it.lvl}`}${wall ? ` ×${it.count}` : n > 1 ? ` ×${n}` : ''}`}>
               <Img src={it.img} alt={it.name} />
               {!wall && <span className="spot-lvl">{it.finishAt ? (left > 0 ? dur(left, 1) : '✓') : it.missing ? '+' : it.lvl}{n > 1 && <small>×{n}</small>}</span>}
             </button>
