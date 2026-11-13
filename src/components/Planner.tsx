@@ -9,8 +9,7 @@ type Sort = 'quick' | 'long' | 'cheap' | 'pricey'
 const SORTS: Record<Sort, string> = { quick: 'Shortest first', long: 'Longest first', cheap: 'Cheapest first', pricey: 'Most expensive first' }
 const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0)
 
-export function Planner({ v, now }: { v: Village; now: number }) {
-  const [village, setVillage] = useState<VillageId>('home')
+export function Planner({ v, now, village }: { v: Village; now: number; village: VillageId }) {
   const [queue, setQueue] = useState<Queue>('builder')
   const [sort, setSort] = useState<Sort>('quick')
   const [res, setRes] = useState('all')
@@ -41,42 +40,53 @@ export function Planner({ v, now }: { v: Village; now: number }) {
   }, [pool, sort, res])
   const resources = [...new Set(pool.flatMap((i) => i.steps.flatMap((s) => Object.keys(s.cost).filter((k) => s.cost[k]))))]
   const wall = st.remTime / workers
+  const FACES: Record<Queue, string[]> = { builder: ["Builder's Hut", 'Builder Hall'], lab: ['Laboratory', 'Star Laboratory'], heroes: ['Hero Hall', 'Battle Machine'], pets: ['Pet House'], smith: ['Blacksmith'] }
+  const face = FACES[queue].map((n) => v.items.find((i) => i.village === village && i.kind === 'building' && i.name === n)).find(Boolean)?.img ?? null
 
   return (
     <>
       <div className="toolbar">
         <div className="seg">
-          <button className={village === 'home' ? 'on' : ''} onClick={() => { setVillage('home'); setQueue('builder'); setRes('all') }}>Home Village</button>
-          {v.bh > 0 && <button className={village === 'builder' ? 'on' : ''} onClick={() => { setVillage('builder'); setQueue('builder'); setRes('all') }}>Builder Base</button>}
-        </div>
-        <div className="seg">
           {queues.map((q) => <button key={q} className={queue === q ? 'on' : ''} onClick={() => { setQueue(q); setRes('all') }}>{village === 'builder' && q === 'lab' ? 'Star Laboratory' : village === 'builder' && q === 'heroes' ? 'Heroes' : QUEUE_LABEL[q]}</button>)}
         </div>
       </div>
-      {st.levelsLeft > 0 && <p className="lede"><b>{st.levelsLeft.toLocaleString()}</b> upgrades{st.remTime > 0 && <> · <b>{dur(workers > 1 ? wall : st.remTime, 1)}</b>{workers > 1 ? ` with ${workers} builders` : ''} · done ~{dateStr(now / 1000 + wall)}</>}</p>}
-      {st.levelsLeft > 0 && <div className="hud"><span className="hud-label">Cost</span><CostView cost={st.remCost} exact /></div>}
-      <div className="toolbar">
-        <h3 className="grow sign">Available</h3>
-        <select value={res} onChange={(e) => setRes(e.target.value)} aria-label="Resource filter">
-          <option value="all">All resources</option>
-          {resources.map((r) => <option key={r}>{r}</option>)}
-        </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
-          {Object.entries(SORTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-        </select>
-      </div>
-      {rows.length === 0 ? <p className="empty">Maxed</p> : (
-        <div className="plan">
-          {rows.map((r) => (
-            <button key={r.it.key} className="plan-row" onClick={() => setOpen(r.it)}>
-              <Img src={r.it.img} alt={r.it.name} />
-              <span className="plan-name"><b>{r.it.name}</b>{r.n > 1 && <span className="muted"> ×{r.n}</span>}<small>{r.it.missing ? 'Build' : `Level ${r.it.lvl} → ${r.to}`}</small></span>
-              <span className="plan-cost"><CostView cost={r.cost} exact /></span>
-              <span className="plan-time">{r.time ? dur(r.time) : 'instant'}</span>
-            </button>
-          ))}
+      <section className="altar panel">
+        <header className="panel-head">
+          <span className="altar-art"><Img src={face} alt="" /></span>
+          <h3 className="altar-name">{village === 'builder' && queue === 'lab' ? 'Star Laboratory' : QUEUE_LABEL[queue]}</h3>
+          {st.levelsLeft === 0 ? <span className="maxtxt">Maxed</span> : (
+            <>
+              <span className="panel-big">{st.levelsLeft.toLocaleString()}<small>upgrades</small></span>
+              {st.remTime > 0 && <span className="panel-big">{dur(workers > 1 ? wall : st.remTime, 1)}<small>{workers > 1 ? `with ${workers} builders` : 'of upgrade time'}</small></span>}
+              {st.remTime > 0 && <span className="panel-rem">done ~{dateStr(now / 1000 + wall)}</span>}
+              <span className="panel-rem"><CostView cost={st.remCost} /></span>
+            </>
+          )}
+        </header>
+        <div className="grow">
+          <div className="toolbar">
+            <select value={res} onChange={(e) => setRes(e.target.value)} aria-label="Resource filter">
+              <option value="all">All resources</option>
+              {resources.map((r) => <option key={r}>{r}</option>)}
+            </select>
+            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
+              {Object.entries(SORTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+          {rows.length === 0 ? <p className="empty">Maxed</p> : (
+            <div className="plan">
+              {rows.map((r) => (
+                <button key={r.it.key} className="plan-row" onClick={() => setOpen(r.it)}>
+                  <Img src={r.it.img} alt={r.it.name} />
+                  <span className="plan-name"><b>{r.it.name}</b>{r.n > 1 && <span className="muted"> ×{r.n}</span>}<small>{r.it.missing ? 'Build' : `Level ${r.it.lvl} → ${r.to}`}</small></span>
+                  <span className="plan-cost"><CostView cost={r.cost} exact /></span>
+                  <span className="plan-time">{r.time ? dur(r.time) : 'instant'}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </section>
       {open && <Detail it={open} now={now} onClose={() => setOpen(null)} />}
     </>
   )

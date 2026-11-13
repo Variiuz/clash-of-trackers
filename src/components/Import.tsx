@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { parseExport } from '../lib/model'
-import { importExport } from '../lib/store'
+import { backup, importExport, restore } from '../lib/store'
 import demo from '../data/demo.json'
 import { PACKED } from '../lib/game'
 
@@ -8,8 +8,15 @@ export function ImportPanel({ onDone, compact }: { onDone?: () => void; compact?
   const [text, setText] = useState('')
   const [err, setErr] = useState('')
   const file = useRef<HTMLInputElement>(null)
+  const [copied, setCopied] = useState(false)
   const submit = (t: string) => {
-    try { importExport(parseExport(t)); setErr(''); setText(''); onDone?.() } catch (e) { setErr((e as Error).message) }
+    try {
+      let b: { clashTrackerBackup?: number; accounts?: Parameters<typeof restore>[0] } | null = null
+      try { b = JSON.parse(t.trim()) } catch { /* parseExport reports it */ }
+      if (b?.clashTrackerBackup && b.accounts) restore(b.accounts)
+      else importExport(parseExport(t))
+      setErr(''); setText(''); onDone?.()
+    } catch (e) { setErr((e as Error).message) }
   }
   return (
     <div className="import">
@@ -26,9 +33,10 @@ export function ImportPanel({ onDone, compact }: { onDone?: () => void; compact?
         {!PACKED && <button className="btn" onClick={async () => { try { const t = await navigator.clipboard.readText(); if (t.trim()) submit(t); else setErr('Clipboard is empty.') } catch { setErr('Clipboard blocked. Paste into the box.') } }}>Paste from clipboard</button>}
         <button className="btn" onClick={() => file.current?.click()}>Open .json file</button>
         <input ref={file} type="file" accept=".json,.txt,application/json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) submit(await f.text()); e.target.value = '' }} />
+        {compact && <button className="btn" onClick={async () => { try { await navigator.clipboard.writeText(backup()); setCopied(true) } catch { setText(backup()) } }}>{copied ? 'Backup copied' : 'Copy backup'}</button>}
         {!compact && <button className="btn ghost" onClick={() => submit(JSON.stringify({ ...demo, timestamp: Math.floor(Date.now() / 1000) }))}>Try the demo village</button>}
       </div>
-      <p className="muted small">Stored in this browser only.</p>
+      <p className="muted small">Saved in this browser. A backup pasted here restores all villages.</p>
     </div>
   )
 }

@@ -4,7 +4,7 @@
 
 Unofficial Clash of Clans progress tracker. A fun side project, made with Claude.
 
-Paste the in-game data export (Settings → More Settings → Data Export) to see levels, remaining upgrades, costs, timers and a planner for both villages. Data stays in the browser. Optionally, the player name, clan and league can be looked up from the ClashKing API by tag (off by default).
+Paste the in-game data export (Settings → More Settings → Data Export) to see levels, remaining upgrades, costs, timers and a planner for both villages. Several villages can be tracked, each with a Home Village and a night-themed Builder Base view. Data stays in the browser and can be copied out as a backup. Optionally, the player name, clan and league can be looked up from the ClashKing API by tag (off by default).
 
 ```bash
 npm install

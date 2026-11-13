@@ -3,7 +3,7 @@ import type { Export } from './model'
 
 /** Everything lives in this browser's localStorage. Nothing is uploaded anywhere. */
 export interface Account { tag: string; name: string; snapshots: Export[] }
-interface State { accounts: Record<string, Account>; current: string | null; /** opt-in: send tags to the ClashKing API for name, clan and league */ lookup?: boolean }
+interface State { accounts: Record<string, Account>; current: string | null; /** opt-in: send tags to the ClashKing API for name, clan and league */ lookup?: boolean; /** which village is on screen */ mode?: 'home' | 'builder' }
 
 const KEY = 'clash-tracker:v1'
 const MAX_SNAPSHOTS = 25
@@ -33,6 +33,19 @@ export function importExport(x: Export) {
   set({ ...state, current: x.tag, accounts: { ...state.accounts, [x.tag]: { tag: x.tag, name: prev?.name ?? '', snapshots: snaps.slice(-MAX_SNAPSHOTS) } } })
 }
 export const setLookup = (on: boolean) => set({ ...state, lookup: on })
+export const setMode = (mode: 'home' | 'builder') => set({ ...state, mode })
+/** Everything this browser holds, for moving to another browser or device. */
+export const backup = () => JSON.stringify({ clashTrackerBackup: 1, accounts: state.accounts })
+export function restore(accounts: Record<string, Account>) {
+  const merged = { ...state.accounts }
+  for (const a of Object.values(accounts)) {
+    if (!a?.tag || !Array.isArray(a.snapshots) || !a.snapshots.length) continue
+    const have = merged[a.tag]?.snapshots ?? []
+    const all = [...have, ...a.snapshots.filter((s) => !have.some((h) => h.timestamp === s.timestamp))].sort((x, y) => x.timestamp - y.timestamp)
+    merged[a.tag] = { tag: a.tag, name: merged[a.tag]?.name || a.name || '', snapshots: all.slice(-MAX_SNAPSHOTS) }
+  }
+  set({ ...state, accounts: merged, current: state.current ?? Object.keys(merged)[0] ?? null })
+}
 export const select = (tag: string | null) => set({ ...state, current: tag })
 export function rename(tag: string, name: string) {
   const a = state.accounts[tag]

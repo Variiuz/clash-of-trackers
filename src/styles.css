@@ -9,12 +9,21 @@
   --ink: #3a2d20; --ink-soft: #77664f;
   --card-hi: #9aabc4; --card-lo: #5f7190; --card-edge: #2a3345;
   --gold: #ffd54a; --gold-deep: #e39a12; --green: #7fd321; --green-deep: #4c9c10; --blue: #46b1f5; --blue-deep: #1f7fcf; --red: #e4462e; --purple: #b98cff;
+  --ground-a: #6fae3c; --ground-b: #5c9a30;
   --white: #fff; --black: #000;
   --ol: -1px -1px 0 var(--black), 1px -1px 0 var(--black), -1px 1px 0 var(--black), 1px 1px 0 var(--black), 0 2px 0 var(--black);
   --display: 'Clash', 'Trebuchet MS', system-ui, sans-serif;
   --body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;
 }
+/* Builder Base: the same pieces at night — moonlit stone instead of grass, cool parchment, violet title bars */
+:root[data-village='builder'] {
+  --grass: #1f2c47; --grass-dark: #151f35; --grass-light: #24334f; --ground-a: #4a5f86; --ground-b: #37496c;
+  --frame: #10162a; --title: #3f3b78; --title-hi: #56519a;
+  --parch: #e7eaf4; --parch-2: #d6dbec; --parch-line: #b8c0d8; --ink: #222943; --ink-soft: #5b6587;
+  --card-hi: #8f8fd0; --card-lo: #4f4f96; --card-edge: #1c1c44;
+}
+:root[data-village='builder'] body { background-image: radial-gradient(1.5px 1.5px at 30px 40px, #fffc 50%, #0000 51%), radial-gradient(1px 1px at 150px 110px, #fff9 50%, #0000 51%), radial-gradient(1.5px 1.5px at 240px 30px, #cde4ff 50%, #0000 51%), radial-gradient(1px 1px at 90px 170px, #fff8 50%, #0000 51%), linear-gradient(180deg, #0000 0, #0006 100%), repeating-conic-gradient(var(--grass-light) 0 25%, var(--grass) 0 50%); background-size: 300px 220px, 300px 220px, 300px 220px, 300px 220px, auto, 96px 56px; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body::before { content: ''; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--grass-dark); }
@@ -219,7 +228,7 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
 .map { overflow-x: auto; margin-bottom: 22px; }
 .map-inner { position: relative; container-type: inline-size; min-width: 640px; max-width: 900px; margin: 0 auto; aspect-ratio: 100 / 97; --cw: calc(100cqw / var(--g)); }
 .map-ground { position: absolute; left: 0; width: 100%; top: calc(var(--cw) * .12); height: 90cqw; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: repeating-linear-gradient(90deg, #0000 0 calc(var(--cw) / 2), #0001 0 var(--cw)), linear-gradient(#6fae3c, #5c9a30); }
+  background: repeating-linear-gradient(90deg, #0000 0 calc(var(--cw) / 2), #0001 0 var(--cw)), linear-gradient(var(--ground-a), var(--ground-b)); }
 .spot { position: absolute; width: var(--cw); height: var(--cw); padding: 0; border: 0; background: none; cursor: pointer;
   left: calc(50cqw + var(--dx) * var(--cw) / 2 - var(--cw) / 2); top: calc(var(--dy) * var(--cw) * .45); transition: transform .12s; }
 .spot img, .spot .noimg, .spot .imgwait { position: absolute; inset: 6% 15% 24%; width: 70%; height: 70%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 calc(var(--cw) * .05) 0 #0005); }
@@ -289,3 +298,33 @@ footer { margin-top: 44px; padding-top: 16px; border-top: 3px solid #0004; font-
   .altar { grid-template-columns: 1fr; }
   .camp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ---- panels: every group gets the hero-hall treatment (a face on the left, its things on the right) ---- */
+.panel { margin-bottom: 14px; }
+.panel-head { display: grid; justify-items: center; gap: 6px; text-align: center; color: var(--white); min-width: 0; }
+.panel-head .bar { width: 100%; }
+.panel-head .altar-art { width: 120px; height: 120px; } .panel-head .altar-art img, .panel-head .altar-art .imgwait, .panel-head .altar-art .noimg { width: 100px; height: 100px; }
+.panel-rem { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; font-size: 13px; font-weight: 700; text-shadow: 0 1px 0 var(--black); }
+.panel-big { display: grid; font: 400 22px var(--display); text-shadow: var(--ol); color: var(--gold); line-height: 1.1; } .panel-big small { font: 700 11.5px var(--body); color: var(--white); text-shadow: 0 1px 0 var(--black); opacity: .85; }
+.panel .toolbar { justify-content: flex-end; margin-bottom: 10px; } .panel .plan { box-shadow: none; }
+@media (max-width: 720px) {
+  .panel-head { grid-template-columns: 76px minmax(0, 1fr); justify-items: start; text-align: left; column-gap: 12px; }
+  .panel-head .altar-art { width: 76px; height: 76px; grid-row: span 4; align-self: start; } .panel-head .altar-art img, .panel-head .altar-art .imgwait, .panel-head .altar-art .noimg { width: 64px; height: 64px; }
+  .panel-rem { justify-content: flex-start; }
+}
+
+/* ---- village picker and the Home / Builder Base switch ---- */
+.villages { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; scrollbar-width: none; }
+.vchip { display: flex; align-items: center; gap: 8px; flex: none; background: #0005; border: 2px solid transparent; border-radius: 12px; padding: 4px 12px 4px 6px; color: var(--white); cursor: pointer; text-align: left; min-height: 44px; }
+.vchip img, .vchip .imgwait, .vchip .noimg { width: 34px; height: 34px; object-fit: contain; }
+.vchip span { display: grid; line-height: 1.15; } .vchip b { font: 400 13px var(--display); text-shadow: var(--ol); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .vchip small { font-size: 11px; font-weight: 700; opacity: .8; }
+.vchip:hover { background: #0008; } .vchip.on { border-color: var(--gold); background: #0008; }
+.vchip.add { padding: 4px 14px; font: 400 13px var(--display); text-shadow: var(--ol); border: 2px dashed #fff5; background: none; }
+.village-side { display: grid; justify-items: end; gap: 6px; }
+.boat { display: flex; background: #0006; border-radius: 14px; padding: 3px; gap: 2px; }
+.boat button { display: flex; align-items: center; gap: 6px; background: none; border: 2px solid transparent; border-radius: 11px; padding: 3px 12px 3px 5px; cursor: pointer; color: var(--white); font: 400 13px var(--display); text-shadow: var(--ol); min-height: 42px; white-space: nowrap; }
+.boat img, .boat .imgwait, .boat .noimg { width: 32px; height: 32px; object-fit: contain; }
+.boat button.on { background: linear-gradient(#ffe27a 0 48%, #f3b526 52%); border-color: var(--frame); box-shadow: inset 0 2px 0 #fff8; }
+.boat button:not(.on) img { filter: saturate(.5) brightness(.8); }
+.link.small { font-size: 12px; opacity: .8; color: var(--white); text-shadow: 0 1px 0 var(--black); }
+@media (max-width: 560px) { .village-side { justify-items: start; width: 100%; grid-auto-flow: column; align-items: center; justify-content: space-between; } }
