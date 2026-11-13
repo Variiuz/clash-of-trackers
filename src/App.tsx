@@ -8,6 +8,7 @@ import { ImportPanel } from './components/Import'
 import { Overview } from './components/Overview'
 import { Items } from './components/Items'
 import { Planner } from './components/Planner'
+import { COOLDOWN_MS, useProfile } from './lib/profile'
 
 const TABS = [['overview', 'Overview'], ['home', 'Home Village'], ['army', 'Army'], ['heroes', 'Heroes'], ['builder', 'Builder Base'], ['planner', 'Planner']] as const
 type Tab = (typeof TABS)[number][0]
@@ -30,6 +31,8 @@ export default function App() {
   const latest = account?.snapshots[account.snapshots.length - 1]
   const v = useMemo(() => (latest ? buildVillage(latest) : null), [latest])
   const accounts = Object.values(store.accounts)
+  const live = useProfile(account?.tag)
+  const wait = live.fetchedAt + COOLDOWN_MS - now
 
   return (
     <div className="app">
@@ -64,9 +67,16 @@ export default function App() {
             <div className="grow">
               <div className="eyebrow">{account.tag} · Town Hall {v.th}{v.bh > 0 ? ` · Builder Hall ${v.bh}` : ''} · exported {ago(v.timestamp, now)}</div>
               <h1>
-                <input className="name" value={account.name} placeholder={`Town Hall ${v.th}`} onChange={(e) => rename(account.tag, e.target.value)} aria-label="Village name" maxLength={30} />
+                <input className="name" value={account.name} placeholder={live.profile?.name ?? `Town Hall ${v.th}`} onChange={(e) => rename(account.tag, e.target.value)} aria-label="Village name" maxLength={30} />
               </h1>
               <div className="chips">
+                {live.profile?.clan && <span className="chip clan">{live.profile.clan.badge && <img src={live.profile.clan.badge} alt="" onError={(e) => { e.currentTarget.hidden = true }} />}{live.profile.clan.name ?? live.profile.clan.tag}</span>}
+                {live.profile?.league && <span className="chip">{live.profile.league}</span>}
+                {live.enabled && (
+                  <button className="chip chip-btn" disabled={live.loading || wait > 0} onClick={live.refresh} title="Profile from the ClashKing API">
+                    {live.loading ? 'Loading profile' : live.error && !live.profile ? 'Profile unavailable, retry' : wait > 0 ? `Profile refresh in ${Math.ceil(wait / 60000)}m` : 'Refresh profile'}
+                  </button>
+                )}
                 {v.unknown > 0 && <span className="chip warn" title="These items are newer than this site's game data and are not shown.">{v.unknown} unknown items</span>}
               </div>
             </div>
@@ -92,9 +102,9 @@ export default function App() {
       )}
 
       <footer>
-        <p>Free. No ads, no payments. Game data as of {game.generated}.</p>
+        <p>A fun little side project, made with Claude. Free, no ads, no payments. Game data as of {game.generated}.</p>
         <p>This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <a href="https://www.supercell.com/fan-content-policy" target="_blank" rel="noreferrer">www.supercell.com/fan-content-policy</a>. Clash of Clans and all related artwork are trademarks and property of Supercell Oy.</p>
-        <p>Data and images: <a href="https://github.com/ClashKingInc/ClashKingAssets" target="_blank" rel="noreferrer">ClashKing Assets</a>.</p>
+        <p>Data and images: <a href="https://github.com/ClashKingInc/ClashKingAssets" target="_blank" rel="noreferrer">ClashKing Assets</a>. Player profiles: <a href="https://api.clashk.ing" target="_blank" rel="noreferrer">ClashKing API</a> (Creator Code: ClashKing).</p>
       </footer>
 
       {importing && <Modal onClose={() => setImporting(false)} wide title="Import or update"><ImportPanel compact onDone={() => { setImporting(false); go('overview') }} /></Modal>}
