@@ -2,28 +2,10 @@ import { useMemo } from 'react'
 import { diffExports, QUEUE_LABEL, sectionStats, type Item, type Queue, type Village } from '../lib/model'
 import type { Account } from '../lib/store'
 import { ago, dateStr, dur, pct } from '../lib/format'
-import { entImage, game, PACKED, type VillageId } from '../lib/game'
-import { Bar, CostView, Countdown, Img, Win } from './bits'
+import { PACKED, type VillageId } from '../lib/game'
+import { CostView, Countdown, Img, Win } from './bits'
 
 const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0)
-
-function Row({ it, now }: { it: Item; now: number }) {
-  const left = it.finishAt! - now / 1000
-  const done = it.activeTime ? 1 - Math.max(0, left) / it.activeTime : 0
-  return (
-    <div className="row">
-      <Img src={it.img} alt={it.name} />
-      <div className="row-main">
-        <div className="row-top"><b>{it.name}</b><span className="muted">Level {it.lvl + 1}</span></div>
-        <Bar value={Math.max(0, Math.min(1, done))} tone="blue" />
-      </div>
-      <div className="row-end">
-        <Countdown finishAt={it.finishAt!} now={now} />
-        <small>{left > 0 ? new Date(it.finishAt! * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</small>
-      </div>
-    </div>
-  )
-}
 
 /** A building standing on the grass with a speech bubble saying what it is busy with. */
 function Station({ img, label, jobs, now }: { img: string | null; label: string; jobs: Item[]; now: number }) {
@@ -46,25 +28,23 @@ function Station({ img, label, jobs, now }: { img: string | null; label: string;
 
 const FLAG_ICON: Record<string, string> = { structures: 'buildings/home-village/cannon/level_21.webp', lab: 'buildings/home-village/laboratory/level_16.webp', heroes: 'heroes/barbarian_king/icon.webp', pets: 'pets/lassi/icon.webp', equipment: 'equipment/giant_gauntlet.webp', walls: 'buildings/home-village/wall/level_19.webp' }
 
-/** The trail from this Town Hall to a maxed one, with a flag for how far each part of the village has come. */
-function Road({ vid, level, overall, secs, go }: { vid: VillageId; level: number; overall: number; secs: { id: string; label: string; pct: number }[]; go: (id: string) => void }) {
-  const hall = game.buildings[game.halls[vid].id]
-  const sorted = [...secs].sort((a, b) => a.pct - b.pct)
+/** One war banner per part of the village, hanging from a beam and filling from the bottom. */
+function Banners({ overall, secs, go }: { overall: number; secs: { id: string; label: string; pct: number }[]; go: (id: string) => void }) {
+  const icon = (id: string) => (PACKED ? 'pack:' : import.meta.env.BASE_URL + 'assets/') + (FLAG_ICON[id] ?? FLAG_ICON.structures)
   return (
-    <div className="road">
-      <Img src={entImage(hall, level)} alt={`${hall.n} ${level}`} className="road-end" />
-      <div className="road-track">
-        <i style={{ width: `${overall * 100}%` }} />
-        {sorted.map((s, k) => (
-          <button key={s.id} className={`flag ${k % 2 ? 'down' : 'up'}`} style={{ left: `${s.pct * 100}%` }} onClick={() => go(s.id)} title={`${s.label} ${pct(s.pct)}`}>
-            <Img src={(PACKED ? 'pack:' : import.meta.env.BASE_URL + 'assets/') + FLAG_ICON[s.id]} alt={s.label} />
-            <span>{s.label}<b>{pct(s.pct)}</b></span>
+    <section className="banners" aria-label="Village progress">
+      <div className="beam"><span className="plaque">{pct(overall)}</span></div>
+      <div className="banner-row">
+        {secs.map((s) => (
+          <button key={s.id} className={`banner ${s.pct >= 0.9995 ? 'maxed' : ''}`} onClick={() => go(s.id)}>
+            <i style={{ height: `${s.pct * 100}%` }} />
+            <Img src={icon(s.id)} alt="" />
+            <b>{pct(s.pct)}</b>
+            <span>{s.label}</span>
           </button>
         ))}
-        <span className="runner" style={{ left: `${overall * 100}%` }}><Img src={(PACKED ? 'pack:' : import.meta.env.BASE_URL + 'assets/') + 'troops/barbarian/icon.webp'} alt="" /><b>{pct(overall)}</b></span>
       </div>
-      <span className="road-goal"><Img src={entImage(hall, level)} alt="" className="road-end" /><b>MAX</b></span>
-    </div>
+    </section>
   )
 }
 
@@ -119,12 +99,7 @@ export function Overview({ v, vid, account, now, go }: { v: Village; vid: Villag
         {stations.map((s) => <Station key={s.label} img={s.img} label={s.label} jobs={s.jobs} now={now} />)}
       </section>
 
-      <Road vid={vid} level={home ? v.th : v.bh} overall={prog.overall} secs={prog.secs.map((s) => ({ id: s.id, label: s.label, pct: s.stats.pct }))} go={(id) => go(tabFor[id] ?? 'village')} />
-      <div className="prog narrow">
-        {prog.secs.map((s) => (
-          <button key={s.id} className="prog-row" onClick={() => go(tabFor[s.id] ?? 'village')}><span>{s.label}</span><Bar value={s.stats.pct} label={pct(s.stats.pct)} /></button>
-        ))}
-      </div>
+      <Banners overall={prog.overall} secs={prog.secs.map((s) => ({ id: s.id, label: s.label, pct: s.stats.pct }))} go={(id) => go(tabFor[id] ?? 'village')} />
 
       <div className="cols">
         <Win title="Up next" aside={<button className="link" onClick={() => go('planner')}>Planner</button>}>

@@ -20,12 +20,43 @@ function load(): State {
 function set(next: State) {
   state = next
   try { localStorage.setItem(KEY, JSON.stringify(state)) } catch { /* storage full or blocked: keep working in memory */ }
+  mirror('put', state)
   subs.forEach((f) => f())
 }
+
+// A second copy in IndexedDB. Browsers sometimes drop one store and not the other, so whichever survives restores the page.
+function mirror(op: 'get'): Promise<State | null>
+function mirror(op: 'put', value: State): Promise<null>
+function mirror(op: 'get' | 'put', value?: State): Promise<State | null> {
+  return new Promise((resolve) => {
+    try {
+      const open = indexedDB.open('clash-tracker', 1)
+      open.onupgradeneeded = () => open.result.createObjectStore('kv')
+      open.onerror = () => resolve(null)
+      open.onsuccess = () => {
+        try {
+          const tx = open.result.transaction('kv', op === 'put' ? 'readwrite' : 'readonly')
+          const req = op === 'put' ? tx.objectStore('kv').put(value, 'state') : tx.objectStore('kv').get('state')
+          req.onsuccess = () => resolve(op === 'get' ? (req.result ?? null) : null)
+          req.onerror = () => resolve(null)
+        } catch { resolve(null) }
+      }
+    } catch { resolve(null) }
+  })
+}
+const hasVillages = (s: State | null): s is State => !!s && typeof s === 'object' && !!s.accounts && Object.keys(s.accounts).length > 0
+// on start: bring villages back from the mirror if the main store lost them, otherwise make sure the mirror is current
+mirror('get').then((saved) => {
+  if (!hasVillages(state) && hasVillages(saved)) set({ ...saved, current: saved.current && saved.accounts[saved.current] ? saved.current : Object.keys(saved.accounts)[0] })
+  else if (hasVillages(state)) mirror('put', state)
+})
+/** Ask the browser not to evict this site's data when it is short on space. */
+const keep = () => { try { void navigator.storage?.persist?.() } catch { /* not supported */ } }
 export function useStore(): State {
   return useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f) }, () => state)
 }
 export function importExport(x: Export) {
+  keep()
   const prev = state.accounts[x.tag]
   const snaps = (prev?.snapshots ?? []).filter((s) => s.timestamp !== x.timestamp)
   snaps.push(x)
