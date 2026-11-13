@@ -26,7 +26,7 @@ export function ImportPanel({ onDone, compact }: { onDone?: () => void; compact?
         {!PACKED && <button className="btn" onClick={async () => { try { const t = await navigator.clipboard.readText(); if (t.trim()) submit(t); else setErr('Clipboard is empty.') } catch { setErr('Clipboard blocked. Paste into the box.') } }}>Paste from clipboard</button>}
         <button className="btn" onClick={() => file.current?.click()}>Open .json file</button>
         <input ref={file} type="file" accept=".json,.txt,application/json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) submit(await f.text()); e.target.value = '' }} />
-        {!compact && <button className="btn ghost" onClick={() => submit(JSON.stringify(demo))}>Try the demo village</button>}
+        {!compact && <button className="btn ghost" onClick={() => submit(JSON.stringify({ ...demo, timestamp: Math.floor(Date.now() / 1000) }))}>Try the demo village</button>}
       </div>
       <p className="muted small">Stored in this browser only.</p>
     </div>

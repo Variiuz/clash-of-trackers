@@ -8,13 +8,13 @@ import { ImportPanel } from './components/Import'
 import { Overview } from './components/Overview'
 import { Items } from './components/Items'
 import { Planner } from './components/Planner'
+import { HeroHall } from './components/HeroHall'
 import { COOLDOWN_MS, useProfile } from './lib/profile'
 
 const TABS = [['overview', 'Overview'], ['home', 'Home Village'], ['army', 'Army'], ['heroes', 'Heroes'], ['builder', 'Builder Base'], ['planner', 'Planner']] as const
 type Tab = (typeof TABS)[number][0]
 const HOME_CATS: Cat[] = ['townhall', 'defenses', 'traps', 'army', 'resources', 'other', 'crafted', 'walls']
 const ARMY_CATS: Cat[] = ['troops', 'darktroops', 'spells', 'sieges', 'pets']
-const HERO_CATS: Cat[] = ['heroes', 'guardians', 'equipment']
 const BB_CATS: Cat[] = ['townhall', 'heroes', 'troops', 'defenses', 'traps', 'army', 'resources', 'other', 'walls']
 const readTab = (): Tab => (TABS.some(([t]) => t === location.hash.slice(1)) ? (location.hash.slice(1) as Tab) : 'overview')
 
@@ -96,10 +96,10 @@ export default function App() {
           </nav>
           <main>
             {tab === 'overview' && <Overview v={v} account={account} now={now} go={go} />}
-            {tab === 'home' && <Items key="home" now={now} cats={HOME_CATS} items={v.items.filter((i) => i.village === 'home')} />}
+            {tab === 'home' && <Items key="home" map now={now} cats={HOME_CATS} items={v.items.filter((i) => i.village === 'home')} />}
             {tab === 'army' && <Items key="army" now={now} cats={ARMY_CATS} items={v.items.filter((i) => i.village === 'home')} />}
-            {tab === 'heroes' && <Items key="heroes" now={now} cats={HERO_CATS} groupByHero items={v.items.filter((i) => i.village === 'home')} />}
-            {tab === 'builder' && <Items key="bb" now={now} cats={BB_CATS} items={v.items.filter((i) => i.village === 'builder')} />}
+            {tab === 'heroes' && <HeroHall now={now} items={v.items.filter((i) => i.village === 'home')} />}
+            {tab === 'builder' && <Items key="bb" map now={now} cats={BB_CATS} items={v.items.filter((i) => i.village === 'builder')} />}
             {tab === 'planner' && <Planner v={v} now={now} />}
           </main>
         </>
