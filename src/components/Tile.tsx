@@ -45,7 +45,7 @@ export function Detail({ it, n = 1, now, onClose }: { it: Item; n?: number; now:
         </div>
       </div>
       {it.steps.length === 0 ? (
-        <p className="maxnote">{it.max >= it.absMax ? 'Fully maxed. Nothing left to do here.' : `Maxed for your current hall level. Level ${it.max + 1} unlocks later.`}</p>
+        <p className="maxnote">{it.max >= it.absMax ? 'Maxed' : `Maxed for this hall. Game max is ${it.absMax}.`}</p>
       ) : (
         <>
           <table className="steps">
@@ -54,7 +54,7 @@ export function Detail({ it, n = 1, now, onClose }: { it: Item; n?: number; now:
               {it.steps.map((s) => (
                 <tr key={s.to} className={s.active ? 'running' : ''}>
                   <td>{s.to - 1} → <b>{s.to}</b></td>
-                  <td>{s.active ? <span className="muted">paid · in progress</span> : <CostView cost={s.cost} exact />}</td>
+                  <td>{s.active ? <span className="muted">in progress</span> : <CostView cost={s.cost} exact />}</td>
                   <td>{s.active && it.finishAt ? <Countdown finishAt={it.finishAt} now={now} /> : s.time ? dur(s.time) : <span className="muted">instant</span>}</td>
                 </tr>
               ))}

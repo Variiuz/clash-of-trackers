@@ -20,7 +20,6 @@ export function Planner({ v, now }: { v: Village; now: number }) {
   const queues = (['builder', 'lab', 'heroes', 'pets', 'smith'] as Queue[]).filter((q) => v.items.some((i) => i.village === village && i.queue === q))
   const st = stats(pool.filter((i) => !i.optional))
   const workers = queue === 'builder' ? (village === 'home' ? v.builders : v.bbBuilders) || 1 : 1
-  const busy = pool.filter((i) => i.finishAt && i.finishAt > now / 1000 && !i.optional).length
 
   const rows = useMemo(() => {
     const m = new Map<string, { it: Item; n: number; cost: Record<string, number>; time: number; to: number }>()
@@ -54,15 +53,10 @@ export function Planner({ v, now }: { v: Village; now: number }) {
           {queues.map((q) => <button key={q} className={queue === q ? 'on' : ''} onClick={() => { setQueue(q); setRes('all') }}>{village === 'builder' && q === 'lab' ? 'Star Laboratory' : village === 'builder' && q === 'heroes' ? 'Heroes' : QUEUE_LABEL[q]}</button>)}
         </div>
       </div>
-      <p className="lede">
-        {st.levelsLeft === 0 ? 'Everything in this queue is maxed.' : <>
-          <b>{st.levelsLeft.toLocaleString()} upgrades</b> left here{st.remTime > 0 && <>, <b>{dur(st.remTime)}</b> of upgrade time{workers > 1 ? <> (about {dur(wall)} with {workers} builders, around {dateStr(now / 1000 + wall)})</> : <> (around {dateStr(now / 1000 + wall)} if it never idles)</>}</>}.
-          {queue === 'builder' && <> {busy} of {workers} builder{workers > 1 ? 's are' : ' is'} busy.</>}
-        </>}
-      </p>
-      {st.levelsLeft > 0 && <div className="hud"><span className="hud-label">Still to pay</span><CostView cost={st.remCost} exact /></div>}
+      {st.levelsLeft > 0 && <p className="lede"><b>{st.levelsLeft.toLocaleString()}</b> upgrades{st.remTime > 0 && <> · <b>{dur(workers > 1 ? wall : st.remTime, 1)}</b>{workers > 1 ? ` with ${workers} builders` : ''} · done ~{dateStr(now / 1000 + wall)}</>}</p>}
+      {st.levelsLeft > 0 && <div className="hud"><span className="hud-label">Cost</span><CostView cost={st.remCost} exact /></div>}
       <div className="toolbar">
-        <h3 className="grow sign">What you can start now</h3>
+        <h3 className="grow sign">Available</h3>
         <select value={res} onChange={(e) => setRes(e.target.value)} aria-label="Resource filter">
           <option value="all">All resources</option>
           {resources.map((r) => <option key={r}>{r}</option>)}
@@ -71,7 +65,7 @@ export function Planner({ v, now }: { v: Village; now: number }) {
           {Object.entries(SORTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
       </div>
-      {rows.length === 0 ? <p className="empty">Nothing left to start in this queue 🎉</p> : (
+      {rows.length === 0 ? <p className="empty">Maxed</p> : (
         <div className="plan">
           {rows.map((r) => (
             <button key={r.it.key} className="plan-row" onClick={() => setOpen(r.it)}>

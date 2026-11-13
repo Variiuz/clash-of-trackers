@@ -18,7 +18,7 @@ function Row({ it, now }: { it: Item; now: number }) {
       </div>
       <div className="row-end">
         <Countdown finishAt={it.finishAt!} now={now} />
-        <small>{left > 0 ? new Date(it.finishAt! * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : 'import again'}</small>
+        <small>{left > 0 ? new Date(it.finishAt! * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</small>
       </div>
     </div>
   )
@@ -43,14 +43,12 @@ export function Overview({ v, account, now, go }: { v: Village; account: Account
       .filter((i) => { const k = `${i.id}|${i.lvl}`; if (seen.has(k)) return false; seen.add(k); return true })
     return { q, active, next }
   })
-  const builderTime = homeItems.filter((i) => i.queue === 'builder').reduce((a, i) => a + i.steps.reduce((x, s) => x + s.time, 0) * i.count, 0)
-  const labTime = home.secs.find((s) => s.id === 'lab')?.stats.remTime ?? 0
   const bbActive = v.items.filter((i) => i.village === 'builder' && i.finishAt).sort((a, b) => a.finishAt! - b.finishAt!)
 
   return (
     <div className="overview">
       <div className="hud wide">
-        <span className="hud-label">Needed to max Town Hall {v.th}</span>
+        <span className="hud-label">To max TH{v.th}</span>
         <CostView cost={home.all.remCost} exact />
       </div>
 
@@ -59,7 +57,7 @@ export function Overview({ v, account, now, go }: { v: Village; account: Account
           {queues.map(({ q, active }) => (
             <div key={q} className="queue">
               <div className="queue-name">{QUEUE_LABEL[q]}</div>
-              {active.length ? active.map((a) => <Row key={a.key} it={a} now={now} />) : <p className="idle">Nothing running. {q === 'builder' ? 'Your builders are asleep!' : 'Idle.'}</p>}
+              {active.length ? active.map((a) => <Row key={a.key} it={a} now={now} />) : <p className="idle">Idle</p>}
             </div>
           ))}
           {bbActive.length > 0 && (
@@ -86,9 +84,6 @@ export function Overview({ v, account, now, go }: { v: Village; account: Account
                 </button>
               )}
             </div>
-            <p className="note">
-              {builderTime > 0 ? <>Your {v.builders} builders need about <b>{dur(builderTime / v.builders, 1)}</b> of non-stop work; the Laboratory needs <b>{dur(labTime, 1)}</b>. Earliest finish around {dateStr(now / 1000 + Math.max(builderTime / v.builders, labTime))}.</> : 'Every structure is maxed for this Town Hall.'}
-            </p>
           </Win>
 
           <Win title="Up next" aside={<button className="link" onClick={() => go('planner')}>Planner</button>}>
@@ -104,7 +99,7 @@ export function Overview({ v, account, now, go }: { v: Village; account: Account
                 ))}
               </div>
             ))}
-            {queues.every((x) => !x.next.length) && <p className="idle">Nothing left to start. Fully maxed!</p>}
+            {queues.every((x) => !x.next.length) && <p className="idle">Maxed</p>}
           </Win>
         </div>
       </div>
@@ -125,15 +120,15 @@ export function Overview({ v, account, now, go }: { v: Village; account: Account
       <Win title="Village log" aside={`${snaps.length} import${snaps.length === 1 ? '' : 's'}`}>
         {prev ? (
           <>
-            <p className="note first">Finished since your previous import, {ago(prev.timestamp, now)} ({dateStr(prev.timestamp)}):</p>
-            {changes.length === 0 ? <p className="idle">No completed upgrades between the last two imports.</p> : (
+            <p className="note first">Since {dateStr(prev.timestamp)} ({ago(prev.timestamp, now)})</p>
+            {changes.length === 0 ? <p className="idle">No changes</p> : (
               <ul className="changes">
                 {changes.slice(0, 18).map((c) => <li key={c.name}><span className="plus">+{c.gained}</span>{c.name}</li>)}
                 {changes.length > 18 && <li className="muted">and {changes.length - 18} more</li>}
               </ul>
             )}
           </>
-        ) : <p className="idle">Import a fresh export now and then. Each one is saved, and this log will list what you finished in between.</p>}
+        ) : <p className="idle">Shows what changed once you import again.</p>}
       </Win>
     </div>
   )

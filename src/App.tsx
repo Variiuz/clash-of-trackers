@@ -50,8 +50,7 @@ export default function App() {
       {!v || !account ? (
         <main className="landing">
           <div className="landing-copy">
-            <h1>See every upgrade<br />you have left.</h1>
-            <p>Paste the data export from Clash of Clans and get your whole village laid out: buildings, walls, traps, troops, spells, heroes, pets and equipment — with live timers, remaining costs and a planner for your builders.</p>
+            <h1>Clash of Clans<br />progress tracker</h1>
             <div className="strip">
               {[18, 16, 14, 12, 10, 8].map((l) => <Img key={l} src={entImage(game.buildings[game.halls.home.id], l)} alt={`Town Hall ${l}`} />)}
             </div>
@@ -93,12 +92,12 @@ export default function App() {
       )}
 
       <footer>
-        <p><b>Free, forever.</b> No ads, no payments, no accounts. Game data as of {game.generated}.</p>
+        <p>Free. No ads, no payments. Game data as of {game.generated}.</p>
         <p>This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <a href="https://www.supercell.com/fan-content-policy" target="_blank" rel="noreferrer">www.supercell.com/fan-content-policy</a>. Clash of Clans and all related artwork are trademarks and property of Supercell Oy.</p>
-        <p>Game data and images courtesy of the community-maintained <a href="https://github.com/ClashKingInc/ClashKingAssets" target="_blank" rel="noreferrer">ClashKing Assets</a> project.</p>
+        <p>Data and images: <a href="https://github.com/ClashKingInc/ClashKingAssets" target="_blank" rel="noreferrer">ClashKing Assets</a>.</p>
       </footer>
 
-      {importing && <Modal onClose={() => setImporting(false)} wide title="Import or update"><p className="muted">Paste a new export. A tag you already track gets a new snapshot; a new tag is added as another village.</p><ImportPanel compact onDone={() => { setImporting(false); go('overview') }} /></Modal>}
+      {importing && <Modal onClose={() => setImporting(false)} wide title="Import or update"><ImportPanel compact onDone={() => { setImporting(false); go('overview') }} /></Modal>}
     </div>
   )
 }

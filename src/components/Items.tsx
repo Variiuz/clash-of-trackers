@@ -50,7 +50,7 @@ export function Items({ items, cats, now, groupByHero }: { items: Item[]; cats: 
           </section>
         )
       })}
-      {shown === 0 && <p className="empty">Nothing to show{hideMaxed ? ' — everything here is maxed 🎉' : ''}.</p>}
+      {shown === 0 && <p className="empty">{hideMaxed ? 'All maxed' : 'No matches'}</p>}
       {open && <Detail it={open.it} n={open.n} now={now} onClose={() => setOpen(null)} />}
     </>
   )

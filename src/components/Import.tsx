@@ -15,9 +15,8 @@ export function ImportPanel({ onDone, compact }: { onDone?: () => void; compact?
     <div className="import">
       {!compact && (
         <ol className="howto">
-          <li>In Clash of Clans open <b>Settings → More Settings</b>.</li>
-          <li>Scroll to <b>Data Export</b> and tap <b>Copy</b>.</li>
-          <li>Paste it below. Repeat whenever you want to refresh — every import is kept as a snapshot.</li>
+          <li>In game: <b>Settings → More Settings → Data Export → Copy</b></li>
+          <li>Paste below</li>
         </ol>
       )}
       <textarea value={text} onChange={(e) => { setText(e.target.value); setErr('') }} placeholder='{"tag":"#…","timestamp":…,"buildings":[…]}' spellCheck={false} aria-label="Exported village JSON" />
@@ -29,7 +28,7 @@ export function ImportPanel({ onDone, compact }: { onDone?: () => void; compact?
         <input ref={file} type="file" accept=".json,.txt,application/json" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) submit(await f.text()); e.target.value = '' }} />
         {!compact && <button className="btn ghost" onClick={() => submit(JSON.stringify(demo))}>Try the demo village</button>}
       </div>
-      <p className="muted small">Your data never leaves this browser. It is stored in local storage only — no account, no server, no tracking.</p>
+      <p className="muted small">Stored in this browser only.</p>
     </div>
   )
 }

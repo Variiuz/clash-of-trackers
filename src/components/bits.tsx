@@ -12,7 +12,7 @@ export function useNow(): number {
 
 export function Countdown({ finishAt, now }: { finishAt: number; now: number }) {
   const left = finishAt - now / 1000
-  return left <= 0 ? <span className="ready">Finished</span> : <span className="timer">{dur(left, 3)}</span>
+  return left <= 0 ? <span className="ready">Done</span> : <span className="timer">{dur(left, 3)}</span>
 }
 
 export function CostView({ cost, exact }: { cost: Cost; exact?: boolean }) {
