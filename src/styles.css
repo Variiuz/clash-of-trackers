@@ -25,7 +25,8 @@
 }
 :root[data-village='builder'] body { background-image: radial-gradient(1.5px 1.5px at 30px 40px, #fffc 50%, #0000 51%), radial-gradient(1px 1px at 150px 110px, #fff9 50%, #0000 51%), radial-gradient(1.5px 1.5px at 240px 30px, #cde4ff 50%, #0000 51%), radial-gradient(1px 1px at 90px 170px, #fff8 50%, #0000 51%), linear-gradient(180deg, #0000 0, #0006 100%), repeating-conic-gradient(var(--grass-light) 0 25%, var(--grass) 0 50%); background-size: 300px 220px, 300px 220px, 300px 220px, 300px 220px, auto, 96px 56px; }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+/* keep the scrollbar's space reserved so locking scroll for a modal cannot shift the page sideways */
+html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
 body::before { content: ''; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--grass-dark); }
 body {
   margin: 0; color: var(--white); font: 15px/1.5 var(--body);

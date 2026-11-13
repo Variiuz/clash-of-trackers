@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "sync-data": "node scripts/build-data.mjs",
     "build:artifact": "node scripts/build-artifact.mjs",
-    "make-demo": "node scripts/make-demo.mjs"
+    "make-demo": "node scripts/make-demo.mjs",
+    "e2e": "node e2e/run.cjs"
   },
   "dependencies": {
     "react": "^18.3.1",

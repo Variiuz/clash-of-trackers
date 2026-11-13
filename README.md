@@ -13,6 +13,7 @@ npm run build            # static site in dist/ (deployed to GitHub Pages on pus
 npm run sync-data        # refresh game data and images after a game update
 npm run build:artifact   # single-page build with packed images
 npm run make-demo        # regenerate the invented demo village
+npm run e2e              # browser test of every control (needs Playwright and `npx vite preview --port 4173` running)
 ```
 
 Maximum levels and counts are those of the current Town Hall / Builder Hall. Progress is measured in upgrade time, or in cost where there is no timer (walls, equipment).
