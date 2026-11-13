@@ -14,10 +14,10 @@ export function Tile({ it, now, onOpen, n = 1 }: { it: Item; now: number; onOpen
         <Img src={it.img} alt={it.name} />
         {count > 1 && <span className="count">×{count}</span>}
         {it.badges.length > 0 && <span className="dot" title={it.badges.join(' · ')}>★</span>}
+        {!maxed && !it.missing && <span className="tile-bar"><i style={{ width: `${progress(it) * 100}%` }} /></span>}
         <span className="lvl">{it.missing ? (it.kind === 'building' || it.kind === 'trap' || it.kind === 'wall' ? 'Not built' : 'Locked') : <>{it.lvl}<small>/{it.max}</small></>}</span>
       </div>
       <div className="tile-name">{it.name}</div>
-      <Bar value={progress(it)} />
       <div className="tile-meta">
         {it.finishAt ? <Countdown finishAt={it.finishAt} now={now} /> : maxed ? <span className="maxtxt">{it.max >= it.absMax ? 'Maxed' : 'Max for hall'}</span> : next ? <CostView cost={next.cost} /> : null}
       </div>
@@ -31,7 +31,7 @@ export function Detail({ it, n = 1, now, onClose }: { it: Item; n?: number; now:
   let time = 0
   for (const s of it.steps) { addCost(total, s.cost, count); time += s.time * count }
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} title={it.name}>
       <div className="detail-head">
         <div className="detail-art">
           <Img src={it.img} alt={it.name} />
@@ -39,9 +39,8 @@ export function Detail({ it, n = 1, now, onClose }: { it: Item; n?: number; now:
         </div>
         <div>
           <div className="eyebrow">{CAT_LABEL[it.cat]}{it.hero ? ` · ${it.hero}` : ''}{count > 1 ? ` · ×${count}` : ''}</div>
-          <h2>{it.name}</h2>
           <div className="detail-lvl">{it.missing ? 'Not built yet' : <>Level <b>{it.lvl}</b> of {it.max}</>}{it.absMax > it.max && <span className="muted"> · game max {it.absMax}</span>}</div>
-          <Bar value={progress(it)} />
+          <Bar value={progress(it)} label={it.missing ? '0%' : `${it.lvl} / ${it.max}`} />
           {it.badges.length > 0 && <div className="badges">{it.badges.map((b) => <span key={b} className="badge">{b}</span>)}</div>}
         </div>
       </div>

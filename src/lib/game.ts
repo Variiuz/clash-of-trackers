@@ -47,8 +47,32 @@ export interface Game {
 }
 export const game = raw as unknown as Game
 
+/** Artifact build: images ship in a few JSON packs instead of ~1000 separate files. */
+export const PACKED = !!import.meta.env.VITE_PACKED
 const BASE = import.meta.env.BASE_URL + 'assets/'
-export const asset = (rel: string) => BASE + rel
+export const asset = (rel: string) => (PACKED ? 'pack:' + rel : BASE + rel)
+
+interface PackIndex { packs: string[]; files: Record<string, number> }
+let index: Promise<PackIndex> | undefined
+const packs = new Map<number, Promise<Record<string, string>>>()
+const urls = new Map<string, string>()
+export const packedUrl = (src: string) => urls.get(src)
+/** Resolves a `pack:` source to a data URL, fetching its pack on first use. */
+export async function loadPacked(src: string): Promise<string | null> {
+  const hit = urls.get(src)
+  if (hit) return hit
+  index ??= fetch('./packs/index.json').then((r) => r.json())
+  const ix = await index
+  const rel = src.slice(5)
+  const p = ix.files[rel]
+  if (p == null) return null
+  if (!packs.has(p)) packs.set(p, fetch('./packs/' + ix.packs[p]).then((r) => r.json()))
+  const b64 = (await packs.get(p)!)[rel]
+  if (!b64) return null
+  const url = 'data:image/webp;base64,' + b64
+  urls.set(src, url)
+  return url
+}
 
 /** Image for an entity at a level: exact level art if we have it, else the closest lower one. */
 export function entImage(e: Ent | undefined, lvl: number): string | null {

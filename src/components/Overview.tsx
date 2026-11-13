@@ -1,19 +1,24 @@
 import { useMemo } from 'react'
-import { buildVillage, diffExports, QUEUE_LABEL, sectionStats, type Item, type Village } from '../lib/model'
+import { diffExports, QUEUE_LABEL, sectionStats, type Item, type Queue, type Village } from '../lib/model'
 import type { Account } from '../lib/store'
 import { ago, dateStr, dur, pct } from '../lib/format'
-import { Bar, CostView, Countdown, Img, Ring } from './bits'
+import { Bar, CostView, Countdown, Img, Win } from './bits'
 
-function Active({ it, now }: { it: Item; now: number }) {
+const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0)
+
+function Row({ it, now }: { it: Item; now: number }) {
   const left = it.finishAt! - now / 1000
   const done = it.activeTime ? 1 - Math.max(0, left) / it.activeTime : 0
   return (
-    <div className={`active-row ${left <= 0 ? 'done' : ''}`}>
+    <div className="row">
       <Img src={it.img} alt={it.name} />
-      <div className="grow">
-        <div className="active-top"><b>{it.name}</b><span className="muted">{it.lvl} → {it.lvl + 1}</span><span className="push"><Countdown finishAt={it.finishAt!} now={now} /></span></div>
+      <div className="row-main">
+        <div className="row-top"><b>{it.name}</b><span className="muted">Level {it.lvl + 1}</span></div>
         <Bar value={Math.max(0, Math.min(1, done))} tone="blue" />
-        <div className="muted small">{left > 0 ? `Done ${new Date(it.finishAt! * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}` : 'Completed since your export — import again to refresh'}</div>
+      </div>
+      <div className="row-end">
+        <Countdown finishAt={it.finishAt!} now={now} />
+        <small>{left > 0 ? new Date(it.finishAt! * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : 'import again'}</small>
       </div>
     </div>
   )
@@ -22,122 +27,114 @@ function Active({ it, now }: { it: Item; now: number }) {
 export function Overview({ v, account, now, go }: { v: Village; account: Account; now: number; go: (tab: string) => void }) {
   const home = useMemo(() => sectionStats(v, 'home'), [v])
   const bb = useMemo(() => sectionStats(v, 'builder'), [v])
-  const active = v.items.filter((i) => i.finishAt).sort((a, b) => a.finishAt! - b.finishAt!)
   const snaps = account.snapshots
   const prev = snaps.length > 1 ? snaps[snaps.length - 2] : null
   const changes = useMemo(() => (prev ? diffExports(prev, snaps[snaps.length - 1]) : []), [prev, snaps])
-  const history = useMemo(() => snaps.map((s) => ({ t: s.timestamp, p: sectionStats(buildVillage(s), 'home').overall })), [snaps])
   const tabFor: Record<string, string> = { structures: 'home', walls: 'home', lab: 'army', pets: 'army', heroes: 'heroes', equipment: 'heroes' }
-  const builderQ = v.items.filter((i) => i.village === 'home' && i.queue === 'builder' && !i.optional)
-  const builderTime = builderQ.reduce((a, i) => a + i.steps.reduce((x, s) => x + s.time, 0) * i.count, 0)
+
+  const homeItems = v.items.filter((i) => i.village === 'home' && !i.optional)
+  const queues = (['builder', 'lab', 'heroes', 'pets'] as Queue[]).map((q) => {
+    const all = homeItems.filter((i) => i.queue === q)
+    const active = all.filter((i) => i.finishAt).sort((a, b) => a.finishAt! - b.finishAt!)
+    // quickest things this queue could start next, one row per distinct upgrade
+    const seen = new Set<string>()
+    const next = all.filter((i) => !i.finishAt && i.steps.length && i.kind !== 'wall' && i.steps[0].time > 0)
+      .sort((a, b) => a.steps[0].time - b.steps[0].time || sum(a.steps[0].cost) - sum(b.steps[0].cost))
+      .filter((i) => { const k = `${i.id}|${i.lvl}`; if (seen.has(k)) return false; seen.add(k); return true })
+    return { q, active, next }
+  })
+  const builderTime = homeItems.filter((i) => i.queue === 'builder').reduce((a, i) => a + i.steps.reduce((x, s) => x + s.time, 0) * i.count, 0)
   const labTime = home.secs.find((s) => s.id === 'lab')?.stats.remTime ?? 0
-  const heroTime = v.items.filter((i) => i.village === 'home' && i.queue === 'heroes').reduce((a, i) => a + i.steps.reduce((x, s) => x + s.time, 0), 0)
-  const queues = [...new Set(active.map((a) => `${a.village}:${a.queue}`))]
+  const bbActive = v.items.filter((i) => i.village === 'builder' && i.finishAt).sort((a, b) => a.finishAt! - b.finishAt!)
 
   return (
     <div className="overview">
-      <section className="card hero-card">
-        <Ring value={home.overall}>
-          <b>{pct(home.overall)}</b><span>Home Village</span>
-        </Ring>
-        <div className="sections">
-          {home.secs.map((s) => (
-            <button key={s.id} className="sec" onClick={() => go(tabFor[s.id] ?? 'home')}>
-              <span className="sec-name">{s.label}</span><span className="sec-pct">{pct(s.stats.pct)}</span>
-              <Bar value={s.stats.pct} />
-              <span className="sec-rem">{s.stats.levelsLeft ? `${s.stats.levelsLeft.toLocaleString()} upgrades left` : 'Maxed'}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      <div className="hud wide">
+        <span className="hud-label">Needed to max Town Hall {v.th}</span>
+        <CostView cost={home.all.remCost} exact />
+      </div>
 
       <div className="cols">
-        <section className="card">
-          <h3>Upgrades in progress <span className="pill">{active.length}</span></h3>
-          {active.length === 0 && <p className="muted">Nothing is upgrading. Your builders are sleeping! Check the Planner for ideas.</p>}
-          {queues.map((q) => {
-            const [vil, queue] = q.split(':')
-            return (
-              <div key={q}>
-                <div className="eyebrow sub">{vil === 'builder' ? 'Builder Base · ' : ''}{vil === 'builder' && queue === 'lab' ? 'Star Laboratory' : QUEUE_LABEL[queue as keyof typeof QUEUE_LABEL]}</div>
-                {active.filter((a) => `${a.village}:${a.queue}` === q).map((a) => <Active key={a.key} it={a} now={now} />)}
-              </div>
-            )
-          })}
-        </section>
+        <Win title="Upgrades in progress" aside={`${queues[0].active.length} / ${v.builders} builders`}>
+          {queues.map(({ q, active }) => (
+            <div key={q} className="queue">
+              <div className="queue-name">{QUEUE_LABEL[q]}</div>
+              {active.length ? active.map((a) => <Row key={a.key} it={a} now={now} />) : <p className="idle">Nothing running. {q === 'builder' ? 'Your builders are asleep!' : 'Idle.'}</p>}
+            </div>
+          ))}
+          {bbActive.length > 0 && (
+            <div className="queue">
+              <div className="queue-name">Builder Base</div>
+              {bbActive.map((a) => <Row key={a.key} it={a} now={now} />)}
+            </div>
+          )}
+        </Win>
 
         <div className="stackcol">
-          <section className="card">
-            <h3>Left to max Town Hall {v.th}</h3>
-            <div className="stack big"><CostView cost={home.all.remCost} exact /></div>
-            <dl className="kv">
-              <dt>Builder time</dt><dd>{dur(builderTime)} <span className="muted">≈ {dur(builderTime / v.builders)} with {v.builders} builders</span></dd>
-              <dt>Laboratory time</dt><dd>{dur(labTime)}</dd>
-              <dt>Hero time</dt><dd>{dur(heroTime)} <span className="muted">across all heroes</span></dd>
-              <dt>Earliest finish</dt><dd>{dateStr(now / 1000 + Math.max(builderTime / v.builders, labTime))} <span className="muted">if nothing ever idles</span></dd>
-            </dl>
-            <button className="btn ghost" onClick={() => go('planner')}>Open planner →</button>
-          </section>
+          <Win title="Village progress" aside={pct(home.overall)}>
+            <div className="prog">
+              {home.secs.map((s) => (
+                <button key={s.id} className="prog-row" onClick={() => go(tabFor[s.id] ?? 'home')}>
+                  <span>{s.label}</span>
+                  <Bar value={s.stats.pct} label={pct(s.stats.pct)} />
+                </button>
+              ))}
+              {v.bh > 0 && (
+                <button className="prog-row" onClick={() => go('builder')}>
+                  <span>Builder Base</span>
+                  <Bar value={bb.overall} label={pct(bb.overall)} tone="blue" />
+                </button>
+              )}
+            </div>
+            <p className="note">
+              {builderTime > 0 ? <>Your {v.builders} builders need about <b>{dur(builderTime / v.builders, 1)}</b> of non-stop work; the Laboratory needs <b>{dur(labTime, 1)}</b>. Earliest finish around {dateStr(now / 1000 + Math.max(builderTime / v.builders, labTime))}.</> : 'Every structure is maxed for this Town Hall.'}
+            </p>
+          </Win>
 
-          {v.bh > 0 && (
-            <section className="card click" onClick={() => go('builder')}>
-              <h3>Builder Base <span className="pill">BH {v.bh}</span><span className="push gold">{pct(bb.overall)}</span></h3>
-              <Bar value={bb.overall} />
-              <div className="stack"><CostView cost={bb.all.remCost} /></div>
-            </section>
-          )}
-
-          {v.helpers.length > 0 && (
-            <section className="card">
-              <h3>Helpers</h3>
-              <div className="helpers">
-                {v.helpers.map((h) => (
-                  <div key={h.name} className="helper">
-                    <Img src={h.img} alt={h.name} />
-                    <div><b>{h.name}</b><div className="muted small">Level {h.lvl}{h.max > h.lvl ? ` / ${h.max}` : ''}{h.readyAt && h.readyAt > now / 1000 ? ` · ready in ${dur(h.readyAt - now / 1000)}` : h.readyAt ? ' · ready' : ''}</div></div>
+          <Win title="Up next" aside={<button className="link" onClick={() => go('planner')}>Planner</button>}>
+            {queues.filter((x) => x.next.length).map(({ q, next }) => (
+              <div key={q} className="queue">
+                <div className="queue-name">{QUEUE_LABEL[q]}</div>
+                {next.slice(0, q === 'builder' ? 3 : 1).map((i) => (
+                  <div key={i.key} className="row">
+                    <Img src={i.img} alt={i.name} />
+                    <div className="row-main"><div className="row-top"><b>{i.name}</b><span className="muted">{i.missing ? 'Build' : `Level ${i.lvl + 1}`}</span></div><CostView cost={i.steps[0].cost} exact /></div>
+                    <div className="row-end"><span className="clockt">{dur(i.steps[0].time)}</span></div>
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            ))}
+            {queues.every((x) => !x.next.length) && <p className="idle">Nothing left to start. Fully maxed!</p>}
+          </Win>
         </div>
       </div>
 
-      <section className="card">
-        <h3>Progress history <span className="pill">{snaps.length} import{snaps.length === 1 ? '' : 's'}</span></h3>
-        {prev ? (
-          <div className="history">
-            <Spark points={history} />
-            <div>
-              <div className="eyebrow sub">Since {ago(prev.timestamp, now)} ({dateStr(prev.timestamp)})</div>
-              {changes.length === 0 ? <p className="muted">No completed upgrades between the last two imports.</p> : (
-                <ul className="changes">
-                  {changes.slice(0, 14).map((c) => <li key={c.name}><span className="plus">+{c.gained}</span>{c.name}</li>)}
-                  {changes.length > 14 && <li className="muted">…and {changes.length - 14} more</li>}
-                </ul>
-              )}
-            </div>
+      {v.helpers.length > 0 && (
+        <Win title="Helpers">
+          <div className="helpers">
+            {v.helpers.map((h) => (
+              <div key={h.name} className="helper">
+                <Img src={h.img} alt={h.name} />
+                <div><b>{h.name}</b><div className="muted small">Level {h.lvl}{h.max > h.lvl ? ` of ${h.max}` : ''}{h.readyAt && h.readyAt > now / 1000 ? ` · ready in ${dur(h.readyAt - now / 1000)}` : h.readyAt ? ' · ready' : ''}</div></div>
+              </div>
+            ))}
           </div>
-        ) : <p className="muted">Import a fresh export every now and then — each one is saved as a snapshot, and this panel will chart your progress and list what you finished in between.</p>}
-      </section>
-    </div>
-  )
-}
+        </Win>
+      )}
 
-function Spark({ points }: { points: { t: number; p: number }[] }) {
-  const W = 420, H = 120, pad = 10
-  const t0 = points[0].t, t1 = points[points.length - 1].t || t0 + 1
-  const lo = Math.min(...points.map((p) => p.p)), hi = Math.max(...points.map((p) => p.p))
-  const x = (t: number) => pad + ((t - t0) / Math.max(1, t1 - t0)) * (W - 2 * pad)
-  const y = (p: number) => H - pad - ((p - lo) / Math.max(0.0001, hi - lo)) * (H - 2 * pad - 18)
-  const path = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.p).toFixed(1)}`).join(' ')
-  return (
-    <svg className="spark" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Home Village progress from ${pct(points[0].p)} to ${pct(points[points.length - 1].p)}`}>
-      <path d={`${path} L${x(t1)},${H} L${x(t0)},${H} Z`} className="spark-area" />
-      <path d={path} className="spark-line" />
-      {points.map((p) => <circle key={p.t} cx={x(p.t)} cy={y(p.p)} r="3.5"><title>{dateStr(p.t)}: {pct(p.p)}</title></circle>)}
-      <text x={pad} y={14}>{pct(points[0].p)}</text>
-      <text x={W - pad} y={14} textAnchor="end">{pct(points[points.length - 1].p)}</text>
-    </svg>
+      <Win title="Village log" aside={`${snaps.length} import${snaps.length === 1 ? '' : 's'}`}>
+        {prev ? (
+          <>
+            <p className="note first">Finished since your previous import, {ago(prev.timestamp, now)} ({dateStr(prev.timestamp)}):</p>
+            {changes.length === 0 ? <p className="idle">No completed upgrades between the last two imports.</p> : (
+              <ul className="changes">
+                {changes.slice(0, 18).map((c) => <li key={c.name}><span className="plus">+{c.gained}</span>{c.name}</li>)}
+                {changes.length > 18 && <li className="muted">and {changes.length - 18} more</li>}
+              </ul>
+            )}
+          </>
+        ) : <p className="idle">Import a fresh export now and then. Each one is saved, and this log will list what you finished in between.</p>}
+      </Win>
+    </div>
   )
 }

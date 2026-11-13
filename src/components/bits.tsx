@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { resIcon, RES_ORDER } from '../lib/game'
+import { loadPacked, packedUrl, resIcon, RES_ORDER } from '../lib/game'
 import type { Cost } from '../lib/model'
 import { dur, full, short } from '../lib/format'
 
@@ -22,38 +22,52 @@ export function CostView({ cost, exact }: { cost: Cost; exact?: boolean }) {
     <span className="costs">
       {keys.map((k) => (
         <span key={k} className="cost" title={`${full(cost[k])} ${k}`}>
-          <img src={resIcon(k)} alt={k} />{exact ? full(cost[k]) : short(cost[k])}
+          <Img src={resIcon(k)} alt={k} />{exact ? full(cost[k]) : short(cost[k])}
         </span>
       ))}
     </span>
   )
 }
 
-export function Bar({ value, tone }: { value: number; tone?: 'gold' | 'green' | 'blue' }) {
+/** Chunky in-game style bar; `label` is drawn inside it. */
+export function Bar({ value, tone, label }: { value: number; tone?: 'gold' | 'green' | 'blue'; label?: string }) {
   const v = Math.max(0, Math.min(1, value))
-  return <div className={`bar ${tone ?? (v >= 0.9995 ? 'gold' : 'green')}`} role="progressbar" aria-valuenow={Math.round(v * 100)} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${v * 100}%` }} /></div>
-}
-
-export function Ring({ value, size = 132, children }: { value: number; size?: number; children?: ReactNode }) {
-  const r = size / 2 - 9, c = 2 * Math.PI * r
   return (
-    <div className="ring" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle cx={size / 2} cy={size / 2} r={r} className="ring-track" />
-        <circle cx={size / 2} cy={size / 2} r={r} className="ring-fill" strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, value))} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-      </svg>
-      <div className="ring-label">{children}</div>
+    <div className={`bar ${label ? 'tall' : ''} ${tone ?? (v >= 0.9995 ? 'gold' : 'green')}`} role="progressbar" aria-valuenow={Math.round(v * 100)} aria-valuemin={0} aria-valuemax={100}>
+      <i style={{ width: `${v * 100}%` }} />
+      {label && <span>{label}</span>}
     </div>
   )
 }
 
-export function Img({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
-  const [bad, setBad] = useState(false)
-  if (!src || bad) return <div className={`noimg ${className ?? ''}`} aria-label={alt}>{alt.replace(/[^A-Za-z ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</div>
-  return <img className={className} src={src} alt={alt} loading="lazy" onError={() => setBad(true)} />
+/** A game-style window: dark title bar on a parchment body. */
+export function Win({ title, aside, children, className }: { title: ReactNode; aside?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={`win ${className ?? ''}`}>
+      <header className="win-head"><h3>{title}</h3>{aside && <span className="win-aside">{aside}</span>}</header>
+      <div className="win-body">{children}</div>
+    </section>
+  )
 }
 
-export function Modal({ onClose, children, wide }: { onClose: () => void; children: ReactNode; wide?: boolean }) {
+export function Img({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
+  const packed = !!src && src.startsWith('pack:')
+  const [bad, setBad] = useState(false)
+  const [url, setUrl] = useState(() => (packed ? packedUrl(src!) ?? null : src))
+  useEffect(() => {
+    if (!packed) { setUrl(src); return }
+    const hit = packedUrl(src!)
+    setUrl(hit ?? null)
+    let live = true
+    if (!hit) loadPacked(src!).then((u) => { if (live) { if (u) setUrl(u); else setBad(true) } }, () => live && setBad(true))
+    return () => { live = false }
+  }, [src, packed])
+  if (packed && !url && !bad) return <span className={`imgwait ${className ?? ''}`} aria-hidden="true" />
+  if (!src || bad) return <div className={`noimg ${className ?? ''}`} aria-label={alt}>{alt.replace(/[^A-Za-z ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}</div>
+  return <img className={className} src={url ?? undefined} alt={alt} loading="lazy" onError={() => setBad(true)} />
+}
+
+export function Modal({ onClose, children, wide, title }: { onClose: () => void; children: ReactNode; wide?: boolean; title: ReactNode }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', h)
@@ -62,9 +76,9 @@ export function Modal({ onClose, children, wide }: { onClose: () => void; childr
   }, [onClose])
   return (
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
-        <button className="x" onClick={onClose} aria-label="Close">×</button>
-        {children}
+      <div className={`modal win ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
+        <header className="win-head"><h3>{title}</h3><button className="x" onClick={onClose} aria-label="Close">×</button></header>
+        <div className="win-body">{children}</div>
       </div>
     </div>
   )

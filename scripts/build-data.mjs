@@ -19,13 +19,15 @@ if (!src) {
 }
 const A = path.join(src, 'assets')
 const OUT = path.join(root, 'public/assets')
+const EXTRA = path.join(root, 'extra-assets')
 const d = JSON.parse(fs.readFileSync(path.join(A, 'static_data.json'), 'utf8'))
 
 const clean = (s) => s.toLowerCase().replaceAll(' ', '_').replace(/[.?’]/g, '').replaceAll('\\q', '')
 const missing = []
 let copied = 0
 function copy(rel) {
-  const from = path.join(A, rel)
+  let from = path.join(A, rel)
+  if (!fs.existsSync(from)) from = path.join(EXTRA, rel) // art the upstream repo lacks, kept in extra-assets/
   if (!fs.existsSync(from)) return false
   const to = path.join(OUT, rel)
   fs.mkdirSync(path.dirname(to), { recursive: true })
@@ -35,7 +37,8 @@ function copy(rel) {
 }
 /** copies a `level_N.webp` directory, returns { img: dir, lv: [levels available] } */
 function levelDir(rel, label) {
-  const dir = path.join(A, rel)
+  let dir = path.join(A, rel)
+  if (!fs.existsSync(dir)) dir = path.join(EXTRA, rel)
   if (!fs.existsSync(dir)) { missing.push(label); return {} }
   const lv = fs.readdirSync(dir).map((f) => /^level_(\d+)\.webp$/.exec(f)).filter(Boolean).map((m) => +m[1]).sort((a, b) => a - b)
   lv.forEach((l) => copy(`${rel}/level_${l}.webp`))

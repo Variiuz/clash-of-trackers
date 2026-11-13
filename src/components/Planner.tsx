@@ -54,15 +54,15 @@ export function Planner({ v, now }: { v: Village; now: number }) {
           {queues.map((q) => <button key={q} className={queue === q ? 'on' : ''} onClick={() => { setQueue(q); setRes('all') }}>{village === 'builder' && q === 'lab' ? 'Star Laboratory' : village === 'builder' && q === 'heroes' ? 'Heroes' : QUEUE_LABEL[q]}</button>)}
         </div>
       </div>
-      <div className="cards3">
-        <div className="card stat"><span className="eyebrow">Upgrades left</span><b>{st.levelsLeft.toLocaleString()}</b><span className="muted">{st.maxed} of {st.items} items maxed</span></div>
-        <div className="card stat"><span className="eyebrow">Total upgrade time</span><b>{st.remTime ? dur(st.remTime) : '—'}</b>
-          <span className="muted">{st.remTime ? (workers > 1 ? `≈ ${dur(wall)} with ${workers} builders, done around ${dateStr(now / 1000 + wall)}` : `done around ${dateStr(now / 1000 + wall)} if never idle`) : 'no timers in this queue'}</span></div>
-        <div className="card stat"><span className="eyebrow">Still to pay</span><div className="stack"><CostView cost={st.remCost} exact /></div>
-          {queue === 'builder' && <span className="muted">{busy} of {workers} builder{workers > 1 ? 's' : ''} busy</span>}</div>
-      </div>
+      <p className="lede">
+        {st.levelsLeft === 0 ? 'Everything in this queue is maxed.' : <>
+          <b>{st.levelsLeft.toLocaleString()} upgrades</b> left here{st.remTime > 0 && <>, <b>{dur(st.remTime)}</b> of upgrade time{workers > 1 ? <> (about {dur(wall)} with {workers} builders, around {dateStr(now / 1000 + wall)})</> : <> (around {dateStr(now / 1000 + wall)} if it never idles)</>}</>}.
+          {queue === 'builder' && <> {busy} of {workers} builder{workers > 1 ? 's are' : ' is'} busy.</>}
+        </>}
+      </p>
+      {st.levelsLeft > 0 && <div className="hud"><span className="hud-label">Still to pay</span><CostView cost={st.remCost} exact /></div>}
       <div className="toolbar">
-        <h3 className="grow">What you can start now</h3>
+        <h3 className="grow sign">What you can start now</h3>
         <select value={res} onChange={(e) => setRes(e.target.value)} aria-label="Resource filter">
           <option value="all">All resources</option>
           {resources.map((r) => <option key={r}>{r}</option>)}

@@ -39,10 +39,9 @@ export function Items({ items, cats, now, groupByHero }: { items: Item[]; cats: 
           <section key={g.id} className="group">
             <header className="group-head">
               <h3>{g.label}</h3>
-              <span className="group-pct">{pct(st.pct)}</span>
-              <Bar value={st.pct} />
+              <Bar value={st.pct} label={pct(st.pct)} />
               <span className="group-rem">
-                {st.levelsLeft === 0 ? <span className="maxtxt">All maxed</span> : <><CostView cost={st.remCost} />{st.remTime > 0 && <span className="cost">⏱ {dur(st.remTime)}</span>}</>}
+                {st.levelsLeft === 0 ? <span className="maxtxt">All maxed</span> : <><CostView cost={st.remCost} />{st.remTime > 0 && <span className="cost clock">{dur(st.remTime)}</span>}</>}
               </span>
             </header>
             <div className="tiles">
