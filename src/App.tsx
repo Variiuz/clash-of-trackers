@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { asset, entImage, game } from './lib/game'
 import { buildVillage, type Cat } from './lib/model'
-import { remove, rename, select, useStore } from './lib/store'
+import { remove, rename, select, setLookup, useStore } from './lib/store'
 import { ago } from './lib/format'
 import { Img, Modal, useNow, Win } from './components/bits'
 import { ImportPanel } from './components/Import'
@@ -31,7 +31,7 @@ export default function App() {
   const latest = account?.snapshots[account.snapshots.length - 1]
   const v = useMemo(() => (latest ? buildVillage(latest) : null), [latest])
   const accounts = Object.values(store.accounts)
-  const live = useProfile(account?.tag)
+  const live = useProfile(account?.tag, !!store.lookup)
   const wait = live.fetchedAt + COOLDOWN_MS - now
 
   return (
@@ -72,10 +72,14 @@ export default function App() {
               <div className="chips">
                 {live.profile?.clan && <span className="chip clan">{live.profile.clan.badge && <img src={live.profile.clan.badge} alt="" onError={(e) => { e.currentTarget.hidden = true }} />}{live.profile.clan.name ?? live.profile.clan.tag}</span>}
                 {live.profile?.league && <span className="chip">{live.profile.league}</span>}
-                {live.enabled && (
-                  <button className="chip chip-btn" disabled={live.loading || wait > 0} onClick={live.refresh} title="Profile from the ClashKing API">
-                    {live.loading ? 'Loading profile' : live.error && !live.profile ? 'Profile unavailable, retry' : wait > 0 ? `Profile refresh in ${Math.ceil(wait / 60000)}m` : 'Refresh profile'}
-                  </button>
+                {live.available && !store.lookup && <button className="chip chip-btn" onClick={() => setLookup(true)} title="Sends your player tag to the ClashKing API">Look up name and clan</button>}
+                {live.available && store.lookup && (
+                  <>
+                    <button className="chip chip-btn" disabled={live.loading || wait > 0} onClick={live.refresh}>
+                      {live.loading ? 'Loading profile' : live.error && !live.profile ? 'Profile unavailable, retry' : wait > 0 ? `Profile refresh in ${Math.ceil(wait / 60000)}m` : 'Refresh profile'}
+                    </button>
+                    <button className="chip chip-btn" onClick={() => setLookup(false)}>Lookup off</button>
+                  </>
                 )}
                 {v.unknown > 0 && <span className="chip warn" title="These items are newer than this site's game data and are not shown.">{v.unknown} unknown items</span>}
               </div>

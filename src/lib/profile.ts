@@ -19,18 +19,18 @@ async function fetchProfile(tag: string): Promise<Cached> {
   return c
 }
 
-/** Loads the profile once per cooldown window; `refresh` does nothing until the window has passed. */
-export function useProfile(tag: string | undefined) {
+/** Only runs when the user has opted in. Loads the profile once per cooldown window; `refresh` does nothing until the window has passed. */
+export function useProfile(tag: string | undefined, optedIn: boolean) {
   const [state, setState] = useState<{ cached: Cached | null; loading: boolean; error: boolean }>({ cached: null, loading: false, error: false })
   const load = useCallback(() => {
-    if (!tag || PACKED || tag === '#DEMO') return
+    if (!tag || !optedIn || PACKED || tag === '#DEMO') return
     const cached = read(tag)
     if (cached && Date.now() - cached.at < COOLDOWN_MS) { setState({ cached, loading: false, error: false }); return }
     setState({ cached, loading: true, error: false })
     let p = inflight.get(tag)
     if (!p) { p = fetchProfile(tag).finally(() => inflight.delete(tag)); inflight.set(tag, p) }
     p.then((c) => setState({ cached: c, loading: false, error: false }), () => setState({ cached, loading: false, error: true }))
-  }, [tag])
-  useEffect(() => { setState({ cached: tag ? read(tag) : null, loading: false, error: false }); load() }, [tag, load])
-  return { profile: state.cached?.profile ?? null, fetchedAt: state.cached?.at ?? 0, loading: state.loading, error: state.error, refresh: load, enabled: !!tag && !PACKED && tag !== '#DEMO' }
+  }, [tag, optedIn])
+  useEffect(() => { setState({ cached: tag && optedIn ? read(tag) : null, loading: false, error: false }); load() }, [tag, optedIn, load])
+  return { profile: state.cached?.profile ?? null, fetchedAt: state.cached?.at ?? 0, loading: state.loading, error: state.error, refresh: load, available: !!tag && !PACKED && tag !== '#DEMO' }
 }

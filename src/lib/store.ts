@@ -3,7 +3,7 @@ import type { Export } from './model'
 
 /** Everything lives in this browser's localStorage. Nothing is uploaded anywhere. */
 export interface Account { tag: string; name: string; snapshots: Export[] }
-interface State { accounts: Record<string, Account>; current: string | null }
+interface State { accounts: Record<string, Account>; current: string | null; /** opt-in: send tags to the ClashKing API for name, clan and league */ lookup?: boolean }
 
 const KEY = 'clash-tracker:v1'
 const MAX_SNAPSHOTS = 25
@@ -30,8 +30,9 @@ export function importExport(x: Export) {
   const snaps = (prev?.snapshots ?? []).filter((s) => s.timestamp !== x.timestamp)
   snaps.push(x)
   snaps.sort((a, b) => a.timestamp - b.timestamp)
-  set({ current: x.tag, accounts: { ...state.accounts, [x.tag]: { tag: x.tag, name: prev?.name ?? '', snapshots: snaps.slice(-MAX_SNAPSHOTS) } } })
+  set({ ...state, current: x.tag, accounts: { ...state.accounts, [x.tag]: { tag: x.tag, name: prev?.name ?? '', snapshots: snaps.slice(-MAX_SNAPSHOTS) } } })
 }
+export const setLookup = (on: boolean) => set({ ...state, lookup: on })
 export const select = (tag: string | null) => set({ ...state, current: tag })
 export function rename(tag: string, name: string) {
   const a = state.accounts[tag]
@@ -39,5 +40,5 @@ export function rename(tag: string, name: string) {
 }
 export function remove(tag: string) {
   const { [tag]: _gone, ...rest } = state.accounts
-  set({ accounts: rest, current: Object.keys(rest)[0] ?? null })
+  set({ ...state, accounts: rest, current: Object.keys(rest)[0] ?? null })
 }
